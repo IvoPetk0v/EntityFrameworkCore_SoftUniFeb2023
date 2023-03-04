@@ -1,0 +1,2 @@
+# EntityFrameworkCore_SoftUniFeb2023
+Entity_Framework_Core_Course_SoftUni_Feb_2023
