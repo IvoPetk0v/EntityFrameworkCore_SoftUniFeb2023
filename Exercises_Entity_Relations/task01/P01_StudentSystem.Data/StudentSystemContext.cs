@@ -17,6 +17,16 @@
 
         }
 
+        public DbSet<Course> Courses { get; set; }
+
+        public DbSet<Homework> Homeworks { get; set; }
+
+        public DbSet<Resource> Resources { get; set; }
+
+        public DbSet<Student> Students { get; set; }
+
+        public DbSet<StudentCourse> StudentsCourses { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
