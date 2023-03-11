@@ -19,7 +19,7 @@
         public string Name { get; set; } = null!;
 
         [Required]
-        public DateTime ReleasedOn { get; set; }
+        public DateTime ReleaseDate { get; set; }
 
 
         [NotMapped]
@@ -27,5 +27,9 @@
 
         public virtual ICollection<Song> Songs { get; set; }
 
+        [ForeignKey(nameof(Producer))]
+        public int? ProducerId { get; set; }
+
+        public Producer Producer { get; set; }
     }
 }
