@@ -19,8 +19,10 @@
 
             //Test your solutions here
 
+            // string result = ExportAlbumsInfo(context, 9);
 
-            string result = ExportAlbumsInfo(context, 9);
+            string result = ExportSongsAboveDuration(context, 4);
+
             Console.WriteLine(result);
         }
 
@@ -78,7 +80,44 @@
 
         public static string ExportSongsAboveDuration(MusicHubDbContext context, int duration)
         {
-            throw new NotImplementedException();
+            var songs = context.Songs
+                .AsEnumerable()
+                .Where(s => s.Duration.TotalSeconds > duration)
+                .OrderBy(s => s.Name)
+                .ThenBy(s => s.Writer.Name)
+                .Select(s => new
+                {
+                    s.Name,
+                    Performers = s.SongPerformers
+                        .Select(sp => sp.Performer.FirstName + " " + sp.Performer.LastName)
+                        .OrderBy(sp => sp)
+                        .ToArray(),
+                    WriterName = s.Writer.Name,
+                    AlbumProducer = s.Album.Producer.Name,
+                    Duration = s.Duration.ToString("c")
+                })
+                  .ToArray();
+
+            var sb = new StringBuilder();
+            int counter = 1;
+            foreach (var s in songs)
+            {
+                sb
+                   .AppendLine($"-Song #{counter}")
+                   .AppendLine($"---SongName: {s.Name}")
+                   .AppendLine($"---Writer: {s.WriterName}");
+                if (s.Performers.Length > 0)
+                {
+                    for (int i = 0; i < s.Performers.Length; i++)
+                    {
+                        sb.AppendLine($"---Performer: {s.Performers[i]}");
+                    }
+                }
+                sb.AppendLine($"---AlbumProducer: {s.AlbumProducer}")
+                    .AppendLine($"---Duration: {s.Duration}");
+                counter++;
+            }
+            return sb.ToString().TrimEnd();
         }
 
 
