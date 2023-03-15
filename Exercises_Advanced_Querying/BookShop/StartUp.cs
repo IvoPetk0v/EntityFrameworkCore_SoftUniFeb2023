@@ -17,11 +17,10 @@
         public static void Main()
         {
             using var context = new BookShopContext();
-           // DbInitializer.ResetDatabase(context);
+            // DbInitializer.ResetDatabase(context);
 
+            Console.WriteLine(GetMostRecentBooks(context));
 
-            Console.WriteLine(GetTotalProfitByCategory(context));
-         
         }
 
         public static string GetBooksByAgeRestriction(BookShopContext context, string command)
@@ -190,17 +189,15 @@
         {
 
             var categories = context.Categories
-               
-                .Select(c => new
-                {
-                    CategoryName = c.Name,
-                    TotalProfit = c.CategoryBooks
+                 .Select(c => new
+                 {
+                     CategoryName = c.Name,
+                     TotalProfit = c.CategoryBooks
                        .Sum(cb => cb.Book.Copies * cb.Book.Price)
-                })
+                 })
                 .OrderByDescending(c => c.TotalProfit)
                 .ThenBy(c => c.CategoryName)
                 .ToArray();
-
 
             var sb = new StringBuilder();
 
@@ -210,6 +207,36 @@
             }
 
             return sb.ToString().TrimEnd();
+        }
+
+        public static string GetMostRecentBooks(BookShopContext context)
+        {
+            //Get the most recent books by categories. The categories should be ordered by name alphabetically. Only take the top 3 most recent books from each category – ordered by release date (descending). Select and print the category name and for each book – its title and release year.
+            var categories = context.Categories
+                .Select(c => new
+                {
+                    CategoryName=c.Name,
+                    TopBooks = c.CategoryBooks
+                         .Select(cb => cb.Book)
+                         .OrderByDescending(b => b.ReleaseDate)
+                         .Take(3)
+                         .ToArray()
+                })
+                .OrderBy(c=>c.CategoryName)
+                .ToArray();
+
+            var sb = new StringBuilder();
+
+            foreach (var c in categories)
+            {
+                sb.AppendLine($"--{c.CategoryName}");
+                foreach (var b in c.TopBooks)
+                {
+                    sb.AppendLine($"{b.Title} ({b.ReleaseDate!.Value.Year})");
+                }
+            }
+            return sb.ToString().TrimEnd();
+               
         }
     }
 }
