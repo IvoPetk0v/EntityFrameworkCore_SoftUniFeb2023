@@ -1,7 +1,8 @@
 ﻿namespace BookShop
 {
     using Microsoft.EntityFrameworkCore;
-
+    using System.Text;
+    using System.Globalization;
     using System.Linq;
     using System.Collections.Immutable;
 
@@ -9,21 +10,18 @@
     using Castle.Core.Internal;
     using Data;
     using Initializer;
-    using System.Text;
-    using Microsoft.EntityFrameworkCore.Query.Internal;
-    using System.Globalization;
+    using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
     public class StartUp
     {
         public static void Main()
         {
             using var context = new BookShopContext();
-            // DbInitializer.ResetDatabase(context);
+           // DbInitializer.ResetDatabase(context);
 
-            string input = Console.ReadLine();
 
-            Console.Write(GetBookTitlesContaining(context, input));
-
+            Console.WriteLine(GetTotalProfitByCategory(context));
+         
         }
 
         public static string GetBooksByAgeRestriction(BookShopContext context, string command)
@@ -135,14 +133,84 @@
         public static string GetBookTitlesContaining(BookShopContext context, string input)
         {
             string subStr = input.ToLower();
+
             var books = context.Books
                 .Where(b => b.Title.ToLower().Contains(subStr))
                 .Select(b => b.Title)
                 .OrderBy(b => b)
                 .ToArray();
+
             return string.Join(Environment.NewLine, books);
         }
 
+        public static string GetBooksByAuthor(BookShopContext context, string input)
+        {
+            var books = context.Books
+                .Where(b => b.Author.LastName.ToLower().StartsWith(input.ToLower()))
+                .OrderBy(b => b.BookId)
+                .Select(b => b.Title + $" ({b.Author.FirstName} {b.Author.LastName})")
+                .ToArray();
+
+            return string.Join(Environment.NewLine, books);
+        }
+
+        public static int CountBooks(BookShopContext context, int lengthCheck)
+        {
+            var bookCount = context.Books
+                .Where(b => b.Title.Length > lengthCheck)
+                .ToArray()
+                .Length;
+
+            return bookCount;
+        }
+
+        public static string CountCopiesByAuthor(BookShopContext context)
+        {
+            var authors = context.Authors
+                          .Select(a => new
+                          {
+                              a.FirstName,
+                              a.LastName,
+                              BookCopies = a.Books.Sum(b => b.Copies)
+                          })
+              .OrderByDescending(b => b.BookCopies)
+              .ToArray();
+
+            var sb = new StringBuilder();
+
+            foreach (var a in authors)
+            {
+                sb.AppendLine($"{a.FirstName} {a.LastName} - {a.BookCopies}");
+            }
+
+            return sb.ToString().TrimEnd();
+        }
+
+        public static string GetTotalProfitByCategory(BookShopContext context)
+        {
+
+            var categories = context.Categories
+               
+                .Select(c => new
+                {
+                    CategoryName = c.Name,
+                    TotalProfit = c.CategoryBooks
+                       .Sum(cb => cb.Book.Copies * cb.Book.Price)
+                })
+                .OrderByDescending(c => c.TotalProfit)
+                .ThenBy(c => c.CategoryName)
+                .ToArray();
+
+
+            var sb = new StringBuilder();
+
+            foreach (var category in categories)
+            {
+                sb.AppendLine($"{category.CategoryName} ${category.TotalProfit:f2}");
+            }
+
+            return sb.ToString().TrimEnd();
+        }
     }
 }
 
