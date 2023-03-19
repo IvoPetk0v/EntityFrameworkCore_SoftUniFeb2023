@@ -1,10 +1,12 @@
 ﻿namespace ProductShop
 {
     using AutoMapper;
+    using Castle.Core.Internal;
     using Newtonsoft.Json;
-    using ProductShop.Data;
-    using ProductShop.DTOs.Import;
-    using ProductShop.Models;
+
+    using Data;
+    using DTOs.Import;
+    using Models;
 
     public class StartUp
     {
@@ -12,9 +14,10 @@
         {
             var context = new ProductShopContext();
 
-            string input = File.ReadAllText(@"../../../Datasets/products.json");
+            string input = File.ReadAllText(@"../../../Datasets/categories.json");
 
-            string result = ImportProducts(context, input);
+            string result = ImportCategories(context, input);
+
             Console.WriteLine(result);
         }
 
@@ -53,6 +56,26 @@
             context.SaveChanges();
 
             return $"Successfully imported {validProducts.Length}";
+        }
+
+        public static string ImportCategories(ProductShopContext context, string inputJson)
+        {
+            var mapper = CreateMapper();
+
+            var categoriesDtos = JsonConvert.DeserializeObject<Category[]>(inputJson);
+            var validCategories = new HashSet<Category>();
+
+            foreach (var category in categoriesDtos!)
+            {
+                if (category.Name.IsNullOrEmpty())
+                {
+                    continue;
+                }
+                validCategories.Add(mapper.Map<Category>(category));
+            }
+            context.AddRange(validCategories);
+            context.SaveChanges();
+            return $"Successfully imported {validCategories.Count}";
         }
     }
 
