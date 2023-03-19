@@ -7,6 +7,9 @@
     using Data;
     using DTOs.Import;
     using Models;
+    using Microsoft.EntityFrameworkCore;
+    using AutoMapper.QueryableExtensions;
+    using ProductShop.DTOs.Export;
 
     public class StartUp
     {
@@ -14,9 +17,9 @@
         {
             var context = new ProductShopContext();
 
-            string input = File.ReadAllText(@"../../../Datasets/categories.json");
+            // string input = File.ReadAllText(@"../../../Datasets/categories-products.json");
 
-            string result = ImportCategories(context, input);
+            string result = GetSoldProducts(context);
 
             Console.WriteLine(result);
         }
@@ -77,9 +80,46 @@
             context.SaveChanges();
             return $"Successfully imported {validCategories.Count}";
         }
+
+        public static string ImportCategoryProducts(ProductShopContext context, string inputJson)
+        {
+            var mapper = CreateMapper();
+            var categoryProductDtos = JsonConvert.DeserializeObject<CategoryProduct[]>(inputJson);
+            CategoryProduct[] categoryProducts = mapper.Map<CategoryProduct[]>(categoryProductDtos);
+
+            context.AddRange(categoryProducts);
+            context.SaveChanges();
+
+            return $"Successfully imported {categoryProducts.Length}";
+        }
+
+        public static string GetProductsInRange(ProductShopContext context)
+        {
+            var mapper = CreateMapper();
+
+            var products = context.Products
+                .Where(p => p.Price >= 500 && p.Price <= 1000)
+                .OrderBy(p => p.Price)
+                .AsNoTracking()
+                .ProjectTo<ProductInRangeDto>(mapper.ConfigurationProvider)
+                .ToArray();
+
+            return JsonConvert.SerializeObject(products, Formatting.Indented);
+        }
+
+        public static string GetSoldProducts(ProductShopContext context)
+        {
+            var mapper = CreateMapper();
+
+            var users = context.Users
+                .Where(u => u.ProductsSold.Any(p=>p.BuyerId.HasValue))
+                .OrderBy(u => u.LastName)
+                .ThenBy(u => u.FirstName)
+                .AsNoTracking()
+                .ProjectTo<UserSoldProductDto>(mapper.ConfigurationProvider)
+                .ToArray();
+
+            return JsonConvert.SerializeObject(users, Formatting.Indented);
+        }
     }
-
-
-
-
 }
