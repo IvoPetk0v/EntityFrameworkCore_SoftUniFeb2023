@@ -42,10 +42,22 @@
                 .ForMember(d => d.BuyerLastName,
                     opt => opt.MapFrom(s => s.Buyer!.LastName));
 
-
-
             //Categories
             this.CreateMap<ImportCategoryDto, Category>();
+
+            this.CreateMap<Category, CategoryByCountDto>()
+                .ForMember(d => d.Name,
+                     opt => opt.MapFrom(s => s.Name))
+                .ForMember(d => d.Count,
+                     opt => opt.MapFrom(s => s.CategoriesProducts.Count))
+                .ForMember(d => d.AveragePrice,
+                     opt => opt.MapFrom(s => Math.Round((double)s.CategoriesProducts
+                                             .Average(p => p.Product.Price), 2)
+                                             .ToString("f2")))
+                .ForMember(d => d.TotalRevenue,
+                     opt => opt.MapFrom(s => Math.Round((double)s.CategoriesProducts
+                                            .Sum(p => p.Product.Price), 2)
+                                            .ToString("f2")));
 
             //CategoryProduct
             this.CreateMap<ImportCategoryProductDto, CategoryProduct>();
