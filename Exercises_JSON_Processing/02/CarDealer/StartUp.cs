@@ -3,6 +3,7 @@ using CarDealer.Data;
 using CarDealer.DTOs.Import;
 using CarDealer.Models;
 using Castle.Core.Resource;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
@@ -31,9 +32,9 @@ namespace CarDealer
             //Console.WriteLine(ImportSales(context,
             //      File.ReadAllText("../../../Datasets/sales.json")));
 
-
+            Console.WriteLine(GetOrderedCustomers(context));
         }
-
+        //Import data methods
         private static IMapper CreateMapper()
         {
             return new Mapper(new MapperConfiguration(cfg =>
@@ -151,5 +152,22 @@ namespace CarDealer
             return $"Successfully imported {validSales.Count}.";
         }
 
+        // Export data methods
+        public static string GetOrderedCustomers(CarDealerContext context)
+        {
+            var customers = context.Customers
+                .OrderBy(c => c.BirthDate)
+                .ThenBy(c => c.IsYoungDriver)
+                .Select(c => new
+                {
+                    Name = c.Name,
+                    BirthDate = c.BirthDate.ToString(("dd/MM/yyyy")),
+                    IsYoungDriver = c.IsYoungDriver
+                })
+                .AsNoTracking()
+                .ToArray();
+
+            return JsonConvert.SerializeObject(customers, Formatting.Indented);
+        }
     }
 }
