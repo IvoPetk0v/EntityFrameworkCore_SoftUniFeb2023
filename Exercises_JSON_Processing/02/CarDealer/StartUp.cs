@@ -5,9 +5,11 @@ using CarDealer.Models;
 using Castle.Core.Internal;
 using Castle.Core.Resource;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace CarDealer
@@ -33,7 +35,7 @@ namespace CarDealer
             //Console.WriteLine(ImportSales(context,
             //      File.ReadAllText("../../../Datasets/sales.json")));
 
-            Console.WriteLine(GetLocalSuppliers(context));
+            Console.WriteLine(GetSalesWithAppliedDiscount(context));
         }
         //Import data methods
         private static IMapper CreateMapper()
@@ -192,9 +194,6 @@ namespace CarDealer
 
         public static string GetLocalSuppliers(CarDealerContext context)
         {
-            //Get all suppliers that do not import parts from abroad.
-            //Get their id, name and the number of parts they can offer to supply.
-            //Export the list of suppliers to JSON in the format provided below.
             var suppliers = context.Suppliers
                 .Where(s => !s.IsImporter)
                 .Select(s => new
@@ -206,6 +205,76 @@ namespace CarDealer
                 .AsNoTracking()
                 .ToArray();
             return JsonConvert.SerializeObject(suppliers, Formatting.Indented);
+        }
+
+        public static string GetCarsWithTheirListOfParts(CarDealerContext context)
+        {
+            var cars = context.Cars
+                .OrderBy(c => c.Id)
+                .Select(c => new
+                {
+                    car = new
+                    {
+                        c.Make,
+                        c.Model,
+                        c.TraveledDistance
+                    },
+                    parts = c.PartsCars
+                    .Select(p => new
+                    {
+                        p.Part.Name,
+                        Price = p.Part.Price.ToString("f2")
+                    }).ToArray()
+
+                })
+                .AsNoTracking()
+                .ToArray();
+
+            return JsonConvert.SerializeObject(cars, Formatting.Indented);
+        }
+
+        public static string GetTotalSalesByCustomer(CarDealerContext context)
+        {
+            var customers = context.Customers
+                .Where(c => c.Sales.Count >= 1)
+                .Select(c => new
+                {
+                    fullName = c.Name,
+                    boughtCars = c.Sales.Count,
+                    spentMoney = c.Sales
+                        .SelectMany(s => s.Car.PartsCars)
+                        .Sum(p => p.Part.Price)
+                })
+                .OrderByDescending(c => c.spentMoney)
+                .ThenByDescending(c => c.boughtCars)
+                .AsNoTracking()
+                .ToArray();
+
+            return JsonConvert.SerializeObject(customers, Formatting.Indented);
+        }
+
+        public static string GetSalesWithAppliedDiscount(CarDealerContext context)
+        {
+            var sales = context.Sales
+                .Take(10)
+                .Select(s => new
+                {
+                    car = new
+                        {
+                            s.Car.Make,
+                            s.Car.Model,
+                            s.Car.TraveledDistance
+                        },
+                    customerName = s.Customer.Name,
+                    discount = s.Discount.ToString("f2"),
+                    price = s.Car.PartsCars.Sum(p => p.Part.Price).ToString("f2"),
+                    priceWithDiscount = (s.Car.PartsCars.Sum(p => p.Part.Price) * (1 - s.Discount / 100)).ToString("f2")
+                })
+                .AsNoTracking()
+                .ToArray();
+
+            return JsonConvert.SerializeObject(sales, Formatting.Indented);
+
         }
     }
 }
