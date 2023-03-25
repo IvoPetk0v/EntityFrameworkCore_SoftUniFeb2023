@@ -14,14 +14,23 @@ namespace CarDealer
     {
         public static void Main()
         {
-            string input = File.ReadAllText("../../../Datasets/customers.json");
-
             var context = new CarDealerContext();
 
-            // Console.WriteLine(ImportSuppliers(context, input));
-            // Console.WriteLine(ImportParts(context, input));
-            // Console.WriteLine(ImportCars(context, input));
-            Console.WriteLine(ImportCustomers(context,input));
+            //Console.WriteLine(ImportSuppliers(context,
+            //      File.ReadAllText("../../../Datasets/suppliers.json")));
+
+            //Console.WriteLine(ImportParts(context,
+            //      File.ReadAllText("../../../Datasets/parts.json")));
+
+            //Console.WriteLine(ImportCars(context,
+            //      File.ReadAllText("../../../Datasets/cars.json")));
+
+            //Console.WriteLine(ImportCustomers(context,
+            //      File.ReadAllText("../../../Datasets/customers.json")));
+
+            //Console.WriteLine(ImportSales(context,
+            //      File.ReadAllText("../../../Datasets/sales.json")));
+
 
         }
 
@@ -123,6 +132,23 @@ namespace CarDealer
             context.SaveChanges();
 
             return $"Successfully imported {validCustomers.Count}.";
+        }
+
+        public static string ImportSales(CarDealerContext context, string inputJson)
+        {
+            var mapper = CreateMapper();
+            var validSales = new HashSet<Sale>();
+            var saleDtos = JsonConvert.DeserializeObject<ImportSaleDto[]>(inputJson);
+
+            foreach (var s in saleDtos!)
+            {
+                validSales.Add(mapper.Map<Sale>(s));
+            }
+
+            context.AddRange(validSales);
+            context.SaveChanges();
+
+            return $"Successfully imported {validSales.Count}.";
         }
 
     }
