@@ -5,6 +5,7 @@
     using CarDealer.Models;
     using CarDealer.Utulities;
     using Castle.Core.Internal;
+    using Castle.Core.Resource;
     using Data;
     using Microsoft.EntityFrameworkCore;
     using System.IO;
@@ -16,12 +17,13 @@
         {
             using var context = new CarDealerContext();
 
-            string input = File.ReadAllText("../../../Datasets/parts.xml");
+            string input = File.ReadAllText("../../../Datasets/customers.xml");
 
 
-            Console.WriteLine(ImportParts(context, input));
+            Console.WriteLine(ImportCustomers(context, input));
 
         }
+
         private static IMapper CreateMapper()
            => new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<CarDealerProfile>()));
 
@@ -74,5 +76,61 @@
             return $"Successfully imported {validParts.Count}";
         }
 
+        public static string ImportCars(CarDealerContext context, string inputXml)
+        {
+            var mapper = CreateMapper();
+            var xmlHelper = new XmlHelper();
+
+            ImportCarDto[] carDtos = xmlHelper.Deserialize<ImportCarDto[]>(inputXml, "Cars");
+            var validCars = new HashSet<Car>();
+
+            foreach (var carDto in carDtos)
+            {
+                if (carDto.Make.IsNullOrEmpty() || carDto.Model.IsNullOrEmpty())
+                {
+                    continue;
+                }
+                var car = mapper.Map<Car>(carDto);
+
+                foreach (var carPartDto in carDto.Parts.DistinctBy(p => p.PartId))
+                {
+                    if (!context.Parts.Any(p => p.Id == carPartDto.PartId))
+                    {
+                        continue;
+                    }
+                    var carPart = new PartCar()
+                    {
+                        PartId = carPartDto.PartId
+                    };
+
+                    car.PartsCars.Add(carPart);
+                }
+                validCars.Add(car);
+            }
+            context.AddRange(validCars);
+            context.SaveChanges();
+
+            return $"Successfully imported {validCars.Count}";
+        }
+
+        public static string ImportCustomers(CarDealerContext context, string inputXml)
+        {
+            var mapper = CreateMapper();
+            var xmlHelper = new XmlHelper();
+            var validCustomers = new HashSet<Customer>();
+
+            var customerDtos = xmlHelper.Deserialize<ImportCustomerDto[]>(inputXml, "Customers");
+
+            foreach (var c in customerDtos)
+            {
+                var customer = mapper.Map<Customer>(c);
+                validCustomers.Add(customer);
+            }
+
+            context.AddRange(validCustomers);
+            context.SaveChanges();
+
+            return $"Successfully imported {validCustomers.Count}";
+        }
     }
 }
