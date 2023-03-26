@@ -23,6 +23,11 @@ namespace CarDealer
                 .ForMember(d => d.BirthDate,
                     opt => opt.MapFrom(s => DateTime.Parse(s.BirthDate)));
 
+            //Sales 
+            this.CreateMap<ImportSaleDto, Sale>()
+                .ForMember(d => d.CarId, opt => opt.MapFrom(s => s.CarId))
+                .ForMember(d => d.CustomerId, opt => opt.MapFrom(s => s.CustomerId));
+
         }
     }
 }

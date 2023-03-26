@@ -16,18 +16,16 @@
         public static void Main()
         {
             using var context = new CarDealerContext();
-
-            string input = File.ReadAllText("../../../Datasets/customers.xml");
-
-
-            Console.WriteLine(ImportCustomers(context, input));
+            // Run Import methods here
+            // string input = File.ReadAllText("../../../Datasets/sales.xml");
+            // Console.WriteLine(ImportSales(context, input));
 
         }
 
         private static IMapper CreateMapper()
            => new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<CarDealerProfile>()));
 
-
+        //Import data methods 
         public static string ImportSuppliers(CarDealerContext context, string inputXml)
         {
             var mapper = CreateMapper();
@@ -132,5 +130,34 @@
 
             return $"Successfully imported {validCustomers.Count}";
         }
+
+        public static string ImportSales(CarDealerContext context, string inputXml)
+        {
+            var mapper = CreateMapper();
+            var xmlHelper = new XmlHelper();
+            var validSales = new HashSet<Sale>();
+
+            var saleDtos = xmlHelper.Deserialize<ImportSaleDto[]>(inputXml, "Sales");
+
+            ICollection<int> dbCarIds = context.Cars
+               .Select(c => c.Id)
+               .ToArray();
+
+            foreach (var s in saleDtos)
+            {
+                if (dbCarIds.All(id => id != s.CarId))
+                {
+                    continue;
+                }
+                var sale = mapper.Map<Sale>(s);
+                validSales.Add(sale);
+            }
+
+            context.AddRange(validSales);
+            context.SaveChanges();
+
+            return $"Successfully imported {validSales.Count}";
+        }
+
     }
 }
